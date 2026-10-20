@@ -1,6 +1,7 @@
 import type { Shape } from "./Shape.js";
 import type { ShapeTopology } from "./ShapeTopology.js";
 import { TreeAnalysis } from "./TreeAnalysis.js";
+import type { Transform } from "./Transform.js";
 
 export class TreeTopology implements ShapeTopology {
   readonly #analysis: TreeAnalysis;
@@ -20,5 +21,11 @@ export class TreeTopology implements ShapeTopology {
 
   public childrenOfParent(parentId: string | null): readonly Shape[] {
     return this.#overrides.get(parentId) ?? this.#analysis.childrenOf(parentId);
+  }
+
+  public transformFor(shape: Shape, parentId: string | null, parentWorld: Transform): Transform {
+    if (!this.#analysis.has(shape.id)) return shape.transform;
+    const original = this.#analysis.node(shape.id);
+    return original.parentId === parentId ? shape.transform : parentWorld.inverse().compose(original.world);
   }
 }

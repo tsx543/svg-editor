@@ -1,4 +1,9 @@
 export class NumericValue {
+  public static parseSvg(value: string, name: string): number {
+    const normalized = value.replace(/^[\x20\t\r\n]+|[\x20\t\r\n]+$/g, "");
+    return NumericValue.parse(normalized.endsWith("px") ? normalized.slice(0, -2) : normalized, name);
+  }
+
   public static parse(value: string, name: string): number {
     if (!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(value)) {
       throw new Error(`invalid number: ${name}`);

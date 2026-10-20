@@ -3,6 +3,7 @@ import { PositionalShapeInput } from "./PositionalShapeInput.js";
 import { Shape } from "./Shape.js";
 import type { ShapeInput } from "./ShapeInput.js";
 import type { ShapeTopology } from "./ShapeTopology.js";
+import { Transform } from "./Transform.js";
 
 export class Group extends Shape {
   #children: Shape[] = [];
@@ -22,10 +23,23 @@ export class Group extends Shape {
     // A group supports containment, including when it currently has no children.
   }
 
-  public override rebuild(parentId: string | null, topology: ShapeTopology): Group {
+  public override rebuild(parentId: string | null, topology: ShapeTopology, parentWorld = new Transform()): Group {
     const copy = new Group(this.id, new PositionalShapeInput([]));
-    copy.#children = topology.childrenOf(this).map((child) => child.rebuild(copy.id, topology));
-    return this.copyStateTo(copy, parentId);
+    this.copyStateTo(copy, parentId);
+    this.copyTransformTo(copy, parentId, topology, parentWorld);
+    const world = parentWorld.compose(copy.transform);
+    copy.#children = topology.childrenOf(this).map((child) => child.rebuild(copy.id, topology, world));
+    return copy;
+  }
+
+  public override validateWorldEdit(factor: number, dx: number, dy: number, parent: Transform, scaling: boolean): void {
+    const world = parent.compose(this.transform);
+    for (const child of this.#children) child.validateWorldEdit(factor, dx, dy, world, scaling);
+  }
+
+  protected override applyWorldEdit(factor: number, dx: number, dy: number, parent: Transform, scaling: boolean): void {
+    const world = parent.compose(this.transform);
+    for (const child of this.#children) Group.applyWorldEditTo(child, factor, dx, dy, world, scaling);
   }
 
   public override validateMove(dx: number, dy: number): void {

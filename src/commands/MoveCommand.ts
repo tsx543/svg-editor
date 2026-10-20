@@ -17,9 +17,9 @@ export class MoveCommand extends EditCommand {
     const dx = input.number(0, "dx");
     const dy = input.number(1, "dy");
     const label = `${shape.kind}#${shape.id}`;
-    const before = shape.position();
-    shape.move(dx, dy);
-    const after = shape.position();
+    const before = document.position(shape.id);
+    document.move(shape.id, dx, dy);
+    const after = document.position(shape.id);
     this.#undoMessage = before === null
       ? `${label} moved back by (${-dx},${-dy})`
       : `${label} moved back to ${before}`;

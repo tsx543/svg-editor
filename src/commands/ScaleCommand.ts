@@ -14,7 +14,7 @@ export class ScaleCommand extends EditCommand {
     this.args.expectCount(2, 2, "scale <id> <factor>");
     const shape = document.find(this.args.at(0));
     const factor = new PositionalShapeInput(this.args.slice(1).values()).number(0, "scale factor");
-    shape.scale(factor);
+    document.scale(shape.id, factor);
     this.#label = `${shape.kind}#${shape.id}`;
     return [`${this.#label} scaled by ${factor}`];
   }

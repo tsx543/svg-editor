@@ -22,6 +22,20 @@ export class Geometry {
     return attribute.value;
   }
 
+  public has(name: string): boolean { return this.#attributes.has(name); }
+
+  public attributes(): ReadonlyMap<string, string> {
+    return new Map([...this.#attributes].map(([name, attribute]) => [name, String(attribute.value)]));
+  }
+
+  public affine(factor: number, xs: readonly string[], ys: readonly string[], dx: number, dy: number): void {
+    this.apply(this.affineValues(factor, xs, ys, dx, dy));
+  }
+
+  public validateAffine(factor: number, xs: readonly string[], ys: readonly string[], dx: number, dy: number): void {
+    this.affineValues(factor, xs, ys, dx, dy);
+  }
+
   public set(name: string, value: string): boolean {
     const attribute = this.#attributes.get(name);
     if (!attribute) {
@@ -75,6 +89,18 @@ export class Geometry {
     const values = new Map<string, number>();
     for (const [name, attribute] of this.#attributes) {
       values.set(name, NumericValue.finite(attribute.value * factor, name));
+    }
+    return values;
+  }
+
+  private affineValues(factor: number, xs: readonly string[], ys: readonly string[], dx: number, dy: number): ReadonlyMap<string, number> {
+    NumericValue.positive(factor, "scale factor");
+    NumericValue.finite(dx, "dx");
+    NumericValue.finite(dy, "dy");
+    const values = new Map<string, number>();
+    for (const [name, attribute] of this.#attributes) {
+      const offset = xs.includes(name) ? dx : ys.includes(name) ? dy : 0;
+      values.set(name, NumericValue.finite(attribute.value * factor + offset, name));
     }
     return values;
   }

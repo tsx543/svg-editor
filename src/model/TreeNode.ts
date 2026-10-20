@@ -1,4 +1,5 @@
 import type { Shape } from "./Shape.js";
+import type { Transform } from "./Transform.js";
 
 export interface TreeNode {
   readonly shape: Shape;
@@ -6,4 +7,5 @@ export interface TreeNode {
   readonly start: number;
   readonly end: number;
   readonly children: readonly Shape[];
+  readonly world: Transform;
 }

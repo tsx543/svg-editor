@@ -5,12 +5,16 @@ import type { Shape } from "./Shape.js";
 import { TreeAnalysis } from "./TreeAnalysis.js";
 import type { TreeNode } from "./TreeNode.js";
 import { TreeTopology } from "./TreeTopology.js";
+import type { ShapeTopology } from "./ShapeTopology.js";
+import { Transform } from "./Transform.js";
+import { SvgPresentation } from "./SvgPresentation.js";
 
 export class SvgDocument {
   #width: number;
   #height: number;
   #children: Shape[] = [];
   #index = new Map<string, Shape>();
+  #rootAttributes = new Map<string, string>();
 
   public constructor(width = 800, height = 600) {
     this.#width = NumericValue.positive(width, "canvas width");
@@ -19,6 +23,51 @@ export class SvgDocument {
 
   public get width(): number { return this.#width; }
   public get height(): number { return this.#height; }
+  public get elementCount(): number { return this.#index.size; }
+
+  public static fromTree(width: number, height: number, roots: readonly Shape[], topology: ShapeTopology, rootAttributes: ReadonlyMap<string, string> = new Map()): SvgDocument {
+    const document = new SvgDocument(width, height);
+    for (const [name, value] of rootAttributes) {
+      if (name === "id") {
+        if (!value || /\s/.test(value)) throw new Error(`invalid id: ${value}`);
+        document.#rootAttributes.set(name, value);
+      } else {
+        const normalized = SvgPresentation.normalize(name, value);
+        if (normalized === undefined) throw new Error(`unsupported SVG attribute: ${name}`);
+        document.#rootAttributes.set(name, normalized);
+      }
+    }
+    document.#children = roots.map((root) => root.rebuild(null, topology));
+    document.#index = document.buildIndex(document.#children);
+    return document;
+  }
+
+  public svgAttributes(): ReadonlyMap<string, string> {
+    return new Map([
+      ["xmlns", "http://www.w3.org/2000/svg"], ["width", String(this.width)],
+      ["height", String(this.height)], ["viewBox", `0 0 ${this.width} ${this.height}`],
+      ...this.#rootAttributes,
+    ]);
+  }
+
+  public worldTransform(id: string): Transform {
+    const shape = this.find(id);
+    return this.parentTransform(shape).compose(shape.transform);
+  }
+
+  public position(id: string): string | null {
+    return this.find(id).projectedPosition(this.worldTransform(id));
+  }
+
+  public move(id: string, dx: number, dy: number): void {
+    const shape = this.find(id);
+    shape.moveInWorld(dx, dy, this.parentTransform(shape));
+  }
+
+  public scale(id: string, factor: number): void {
+    const shape = this.find(id);
+    shape.scaleInWorld(factor, this.parentTransform(shape));
+  }
 
   public get children(): readonly Shape[] {
     return [...this.#children];
@@ -59,6 +108,7 @@ export class SvgDocument {
 
   public clone(): SvgDocument {
     const copy = new SvgDocument(this.width, this.height);
+    copy.#rootAttributes = new Map(this.#rootAttributes);
     copy.#children = this.#children.map((child) => child.clone(null));
     copy.#index = copy.buildIndex(copy.#children);
     return copy;
@@ -77,7 +127,7 @@ export class SvgDocument {
   }
 
   public group(newId: string, ids: readonly string[]): void {
-    if (this.#index.has(newId)) throw new Error(`id already exists: ${newId}`);
+    if (this.#index.has(newId) || this.#rootAttributes.get("id") === newId) throw new Error(`id already exists: ${newId}`);
     const group = new Group(newId, new PositionalShapeInput([]));
     if (ids.length < 2) throw new Error("group requires at least two shapes");
     const selected = new Set<string>();
@@ -182,13 +232,26 @@ export class SvgDocument {
 
   private buildIndex(roots: readonly Shape[]): Map<string, Shape> {
     const index = new Map<string, Shape>();
-    for (const root of roots) this.indexSubtree(root, index);
+    for (const root of roots) this.indexSubtree(root, index, new Transform());
     return index;
   }
 
-  private indexSubtree(shape: Shape, index: Map<string, Shape>): void {
-    if (index.has(shape.id)) throw new Error(`id already exists: ${shape.id}`);
+  private indexSubtree(shape: Shape, index: Map<string, Shape>, parentWorld: Transform): void {
+    if (index.has(shape.id) || shape.id === this.#rootAttributes.get("id")) throw new Error(`id already exists: ${shape.id}`);
+    const world = parentWorld.compose(shape.transform);
+    shape.validateProjection(world);
     index.set(shape.id, shape);
-    for (const child of shape.children) this.indexSubtree(child, index);
+    for (const child of shape.children) this.indexSubtree(child, index, world);
+  }
+
+  private parentTransform(shape: Shape): Transform {
+    let transform = new Transform();
+    let parentId = shape.parentId;
+    while (parentId !== null) {
+      const parent = this.find(parentId);
+      transform = parent.transform.compose(transform);
+      parentId = parent.parentId;
+    }
+    return transform;
   }
 }

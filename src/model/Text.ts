@@ -16,6 +16,12 @@ export class Text extends Shape {
 
   public override get kind(): string { return "text"; }
 
+  public override svgText(): string { return this.#content; }
+
+  protected override importText(text?: string): void {
+    if (text !== undefined) this.#content = text;
+  }
+
   public override position(): string {
     return `(${this.number("x")},${this.number("y")})`;
   }
