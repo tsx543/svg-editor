@@ -1,5 +1,5 @@
 @startuml
-title SVG CLI - Architecture and stage A status
+title SVG CLI - Architecture and stage B status
 top to bottom direction
 skinparam componentStyle rectangle
 skinparam shadowing false
@@ -35,7 +35,7 @@ Svg ..> Application : contracts only
 Infrastructure ..> Application : contracts only
 
 legend bottom
-  Solid arrows = stage A source dependencies.
+  Solid arrows = stage B source dependencies.
   Dashed arrows = dependencies planned for stage D.
   Only CommandDispatcher and ShapeFactory dispatch by name.
 endlegend

@@ -8,16 +8,17 @@
 
 ## 当前进度
 
-**阶段 A 已完成：基础图形与 CLI。** 支持六种图形、嵌套创建、结构显示和创建的撤销重做；下一步是阶段 B 的其他编辑命令。
+**阶段 B 已完成：基础图形、CLI 和编辑撤销。** 支持六种图形、嵌套创建、结构显示，以及移动、缩放、设置属性和删除；下一步是阶段 C 的层级与顺序调整。
 
 | 已实现命令 | 功能 |
 | --- | --- |
 | `init/canvas` | 新建、查询及修改画布尺寸 |
 | `create` | 创建 `rect/circle/ellipse/line/text/g`，全部支持 `in <containerId>` |
 | `tree/show/help` | 显示几何属性与层级、查询父级与明细、查看全部命令语法 |
-| `undo/redo` | 当前支持创建操作；遵守新编辑清 redo、文档操作后禁止撤销重做的规则 |
+| `move/scale/set/delete` | 移动、缩放、设置白名单属性与文字、删除整棵子树；组和叶子统一操作 |
+| `undo/redo` | 支持上述五种编辑；一条编辑一个单元，新编辑清 redo，文档操作后禁止撤销重做 |
 
-`move/scale/set/delete`、分组与层级调整、`read/save` 尚未开放，CLI 和 help 会明确提示尚未实现。当前图形只保存在内存中，退出后不保留；SVG 文件读写将在阶段 D 完成。
+`group/ungroup/addto/front/back` 和 `read/save` 尚未开放，CLI 和 help 会明确提示尚未实现。当前图形只保存在内存中，退出后不保留；SVG 文件读写将在阶段 D 完成。
 
 正式的[架构方案、过程记录、一致性自查和质量保证说明](https://github.com/tsx543/svg-editor/blob/main/doc/README.md)保存在 `doc/README.md`，其中明确区分计划、已完成内容和待验证事项。这里使用完整链接，上传本 README 后也能访问正式文档。本地操作路线见[作业完成指南](作业完成指南.md)。
 
@@ -32,10 +33,11 @@ npm run cli
 
 交互终端显示 `svg>`，逐行输入命令；macOS 下按 Ctrl+D 退出。支持双引号文字、整行 `#` 注释，颜色中的 `#` 保留。
 
-也可以直接回放老师的流程图创建示例：
+也可以回放老师的流程图创建示例，以及阶段 B 的编辑与恢复演示：
 
 ```bash
 npm run cli < examples/stage-a-flowchart.txt
+npm run cli < examples/stage-b-editing.txt
 ```
 
 ## 检查与构建
@@ -47,7 +49,7 @@ npm run build
 npm start
 ```
 
-`typecheck` 检查业务与测试源码，`test` 运行模型、应用、解析器、真实 CLI 进程和架构检查，`build` 生成 `dist/`，`start` 运行构建产物。阶段 A 及架构规则修正后的 **45 项测试全部通过**；开发与构建入口均已回放流程图，交互终端也已检查提示符、错误后继续和 EOF 退出。
+`typecheck` 检查业务与测试源码，`test` 运行模型、应用、编辑历史、解析器、真实 CLI 进程和架构检查，`build` 生成 `dist/`，`start` 运行构建产物。阶段 B 的 **72 项测试全部通过**，类型检查与构建成功；开发与构建入口的流程图编辑回放输出一致。阶段 A 已检查交互终端的提示符、错误后继续和 EOF 退出。
 
 依赖记录在 `package.json` 和 `package-lock.json` 中。npm 缓存放在本项目的 `.npm-cache/`，不提交到 Git。
 
