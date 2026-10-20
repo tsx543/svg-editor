@@ -2,6 +2,7 @@ import { NumericValue } from "./NumericValue.js";
 import { PositionalShapeInput } from "./PositionalShapeInput.js";
 import { Shape } from "./Shape.js";
 import type { ShapeInput } from "./ShapeInput.js";
+import type { ShapeTopology } from "./ShapeTopology.js";
 
 export class Group extends Shape {
   #children: Shape[] = [];
@@ -15,6 +16,16 @@ export class Group extends Shape {
 
   public override get children(): readonly Shape[] {
     return [...this.#children];
+  }
+
+  public override assertContainer(): void {
+    // A group supports containment, including when it currently has no children.
+  }
+
+  public override rebuild(parentId: string | null, topology: ShapeTopology): Group {
+    const copy = new Group(this.id, new PositionalShapeInput([]));
+    copy.#children = topology.childrenOf(this).map((child) => child.rebuild(copy.id, topology));
+    return this.copyStateTo(copy, parentId);
   }
 
   public override validateMove(dx: number, dy: number): void {

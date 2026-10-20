@@ -1,6 +1,7 @@
 import { Geometry } from "./Geometry.js";
 import type { GeometryAttribute } from "./GeometryAttribute.js";
 import { NumericValue } from "./NumericValue.js";
+import type { ShapeTopology } from "./ShapeTopology.js";
 
 export abstract class Shape {
   readonly #id: string;
@@ -80,6 +81,20 @@ export abstract class Shape {
   }
 
   public abstract clone(parentId?: string | null): Shape;
+
+  public assertContainer(): void {
+    throw new Error(`not a container: ${this.id}`);
+  }
+
+  public assertUngroupable(): void {
+    this.assertContainer();
+  }
+
+  /** Topology supplies structure only; every resulting mutable node is newly copied. */
+  public rebuild(parentId: string | null, topology: ShapeTopology): Shape {
+    if (topology.childrenOf(this).length > 0) this.assertContainer();
+    return this.clone(parentId);
+  }
 
   /** Returns a new tree; it never changes the receiver's children. */
   public withChild(_child: Shape): Shape {
