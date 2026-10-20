@@ -125,7 +125,7 @@ test('piped CLI groups, reparents, reorders, ungroups, and restores ordered shap
     'ungroup scene',
     'tree',
   ].join('\n'));
-  assert.match(output, /g#pair created with 2 children/);
+  assert.match(output, /^g#pair created with 2 children in g#scene \(sibling 1 of 1\)$/m);
   assert.match(output, /circle#c\s+parent=g#scene\n\s+cx=90 cy=100 r=5/);
   assert.match(output, /error: cannot group a container into its own descendant: scene/);
   assert.match(output, /error: cannot ungroup top-level container: scene/);

@@ -72,7 +72,7 @@ test('group uses original sibling order and the earliest selected slot rather th
   const before = success(cli, 'tree');
   const left = details(cli, 'left');
   const right = details(cli, 'right');
-  assert.equal(success(cli, 'group picked right left'), 'g#picked created with 2 children');
+  assert.equal(success(cli, 'group picked right left'), 'g#picked created with 2 children in g#scene (sibling 1 of 3)');
   assert.deepEqual(children(cli, 'scene'), ['picked', 'branchA', 'branchB']);
   assert.deepEqual(children(cli, 'picked'), ['left', 'right']);
   assert.deepEqual(children(cli), ['background', 'scene', 'foreground']);
@@ -486,5 +486,39 @@ test('all hierarchy commands keep the specified no-document and missing-shape er
   success(cli, 'create circle a 1 2 3');
   for (const command of ['group picked a missing', 'ungroup missing', 'addto existing missing', 'front missing', 'back missing']) {
     failure(cli, command, 'error: no such shape: missing');
+  }
+});
+
+test('group summary locates a cross-parent group before its retained anchor branch', () => {
+  const cli = fixture();
+  const summary = success(cli, 'group picked b1 deepCircle');
+  assert.equal(summary, 'g#picked created with 2 children in g#scene (sibling 2 of 5)');
+  assert.deepEqual(children(cli, 'scene'), ['left', 'picked', 'branchA', 'branchB', 'right']);
+  assert.deepEqual(children(cli, 'picked'), ['deepCircle', 'b1']);
+  assert.deepEqual(children(cli, 'deep'), ['deepLabel']);
+  assert.deepEqual(children(cli, 'branchB'), ['b2']);
+  parent(cli, 'picked', 'g#scene');
+  parent(cli, 'deepCircle', 'g#picked');
+});
+
+test('root-LCA group summaries identify first, last, and sole positions and survive undo/redo failures', () => {
+  for (const { selection, ordinal, count, expectedRoots } of [
+    { selection: ['foreground', 'background'], ordinal: 1, count: 2, expectedRoots: ['overall', 'scene'] },
+    { selection: ['foreground', 'scene'], ordinal: 2, count: 2, expectedRoots: ['background', 'overall'] },
+    { selection: ['foreground', 'scene', 'background'], ordinal: 1, count: 1, expectedRoots: ['overall'] },
+  ]) {
+    const cli = fixture();
+    const before = success(cli, 'tree');
+    const summary = `g#overall created with ${selection.length} children in svg (sibling ${ordinal} of ${count})`;
+    assert.equal(success(cli, `group overall ${selection.join(' ')}`), summary);
+    assert.deepEqual(children(cli), expectedRoots);
+    parent(cli, 'overall', 'svg');
+    const after = success(cli, 'tree');
+    success(cli, 'undo');
+    assert.equal(success(cli, 'tree'), before);
+    failure(cli, 'group invalid scene deepLabel', 'error: cannot group a container into its own descendant: scene');
+    assert.equal(success(cli, 'tree'), before);
+    assert.deepEqual(cli.executeLine('redo'), [summary]);
+    assert.equal(success(cli, 'tree'), after);
   }
 });
