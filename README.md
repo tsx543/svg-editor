@@ -8,7 +8,7 @@
 
 ## 当前进度
 
-**阶段 C 已完成：基础图形、编辑撤销、层级与顺序。** 六种图形和十种编辑操作已实现；下一步是阶段 D 的 SVG 文件读写。
+**阶段 D 已完成：19 条命令全部实现。** 支持六种图形、十种可撤销编辑、SVG 读写、缺失 id 补全与文件操作后的历史屏障。下一步是最终人工复核、亲自演示及打 `final` 标签。
 
 | 已实现命令 | 功能 |
 | --- | --- |
@@ -18,9 +18,12 @@
 | `move/scale/set/delete` | 移动、缩放、设置白名单属性与文字、删除整棵子树；组和叶子统一操作 |
 | `group/ungroup/addto` | 收编已有图形、解散嵌套组、调整归属；保留顺序并拒绝循环 |
 | `front/back` | 在当前父级内移到最上层/最下层，不改变其他层级 |
+| `read/save` | 读取与原子保存 SVG；缺失 id 自动补全并警告，成功后建立历史屏障 |
 | `undo/redo` | 支持全部十种编辑；一条编辑一个单元，新编辑清 redo，文档操作后禁止撤销重做 |
 
-`read/save` 尚未开放，CLI 和 help 会明确提示尚未实现。当前图形只保存在内存中，退出后不保留；SVG 文件读写将在阶段 D 完成。
+新建文档后首次保存须指定路径，例如 `save demo.svg`；成功 `read` 后，无参数 `save` 保存到该读入路径。带路径另存不会改变默认路径，`init` 会清除它。
+
+SVG 支持六种标签、公共样式、文字属性及嵌套 `translate`/正等比 `scale`。旋转、非等比缩放、未知标签或属性、根 `style/transform` 等会整体报错。完整兼容范围见正式文档；`box` 与插件仍留待后续课程阶段。
 
 正式的[架构方案、过程记录、一致性自查和质量保证说明](https://github.com/tsx543/svg-editor/blob/main/doc/README.md)保存在 `doc/README.md`，其中明确区分计划、已完成内容和待验证事项。这里使用完整链接，上传本 README 后也能访问正式文档。本地操作路线见[作业完成指南](作业完成指南.md)。
 
@@ -41,7 +44,10 @@ npm run cli
 npm run cli < examples/stage-a-flowchart.txt
 npm run cli < examples/stage-b-editing.txt
 npm run cli < examples/stage-c-hierarchy.txt
+npm run cli < examples/stage-d-roundtrip.txt
 ```
+
+阶段 D 脚本生成的 [flowchart.svg](examples/flowchart.svg)、[roundtrip.svg](examples/roundtrip.svg) 和 [transformed-edited.svg](examples/transformed-edited.svg) 可直接在浏览器打开。脚本有两次故意在保存后执行 `undo`，应得到 `error: undo not allowed after io command`，用于演示老师要求的屏障。
 
 ## 检查与构建
 
@@ -52,7 +58,9 @@ npm run build
 npm start
 ```
 
-`typecheck` 检查业务与测试源码，`test` 运行模型、应用、编辑历史、解析器、真实 CLI 进程和架构检查，`build` 生成 `dist/`，`start` 运行构建产物。阶段 C 及分组位置反馈补充后的 **119 项测试全部通过**，类型检查与构建成功；层级调整已通过开发与构建入口回放。测试包含 120 层嵌套、宽树多选及深层多选的复制与遍历预算。阶段 A 已检查交互终端的提示符、错误后继续和 EOF 退出。
+`typecheck` 检查业务与测试源码，`test` 运行模型、SVG 往返、真实文件、历史、CLI 进程及架构检查，`build` 生成 `dist/`，`start` 运行构建产物。阶段 D 的 **177 项测试全部通过**，类型检查与构建成功；从锁文件重装后结果相同，开发与构建入口的完整回放输出一致，保存结果已在浏览器预览。
+
+测试包含深层/多选复制预算、变换下的重挂与缩放、失败保留历史，以及写入/重命名故障和临时文件名碰撞。XML 库 `saxes 6.0.0` 的声明与当前编译器存在兼容问题，工程用 `skipLibCheck` 跳过声明内部检查，业务和测试仍保持严格检查；原因与验证依据记录在正式文档。
 
 依赖记录在 `package.json` 和 `package-lock.json` 中。npm 缓存放在本项目的 `.npm-cache/`，不提交到 Git。
 
