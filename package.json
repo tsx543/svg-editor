@@ -9,11 +9,13 @@
   },
   "scripts": {
     "cli": "tsx src/main.ts",
-    "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test tests/*.test.ts",
+    "typecheck": "tsc -p tsconfig.test.json",
     "build": "tsc",
     "start": "node dist/main.js"
   },
   "devDependencies": {
+    "@babel/parser": "7.29.9",
     "@types/node": "26.6.5",
     "tsx": "4.23.15",
     "typescript": "7.0.2"

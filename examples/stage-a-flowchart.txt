@@ -1,0 +1,18 @@
+# 作业第 6.1 节版本 A：阶段 A 的创建与检查部分
+# 回放：npm run cli < examples/stage-a-flowchart.txt
+# move/set/save 等将在后续阶段实现，此脚本不调用它们。
+init 800 600
+create g flowchart
+create g node1 in flowchart
+create rect start 120 100 160 60 #4a90d9 in node1
+create text start-label 155 135 "开始" in node1
+create g node2 in flowchart
+create rect process 520 100 160 60 #f5a623 in node2
+create text process-label 545 135 "处理数据" in node2
+create line arrow1 280 130 520 130 black in flowchart
+tree
+show process-label
+undo
+tree flowchart
+redo
+tree
