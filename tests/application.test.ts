@@ -266,12 +266,12 @@ test('teacher two-node flowchart version A can be built and inspected in stage A
   assert.equal(tree.match(/(?:g|rect|text|line)#[\w-]+/g)?.length, 8);
 });
 
-test('unimplemented phase B to D commands report failure and preserve the current stage A state', () => {
+test('unimplemented phase C and D commands report failure and preserve the current document', () => {
   const cli = editor();
   success(cli, 'init');
   success(cli, 'create circle c 10 20 3');
   const before = success(cli, 'tree');
-  for (const command of ['move c 1 2', 'delete c', 'group group1 c c', 'read missing.svg', 'save out.svg']) {
+  for (const command of ['group group1 c c', 'ungroup group1', 'addto group1 c', 'front c', 'back c', 'read missing.svg', 'save out.svg']) {
     const lines = cli.executeLine(command);
     assert.equal(lines.length, 1);
     assert.match(lines[0]!, /^error: .*尚未实现/);

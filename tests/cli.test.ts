@@ -74,3 +74,33 @@ test('piped CLI supports create undo/redo and rejects unpublished future command
   assert.match(output, /error: .*尚未实现/);
   assert.match(output, /svg \(800x600\)\n└── g#scene/);
 });
+
+test('piped CLI moves, scales, updates, deletes, and restores a complete nested node', () => {
+  const output = runScript([
+    'init 800 600',
+    'create g flowchart',
+    'create g node2 in flowchart',
+    'create rect process 520 100 160 60 #f5a623 in node2',
+    'create text process-label 545 135 "处理数据" in node2',
+    'move node2 0 100',
+    'show process-label',
+    'scale node2 .5',
+    'show process',
+    'set process-label text "处理数据 v2"',
+    'delete node2',
+    'show process',
+    'undo',
+    'show process-label',
+    'scale node2 0',
+    'tree',
+  ].join('\n'));
+  assert.match(output, /g#node2 moved by \(0,100\)/);
+  assert.match(output, /x=545 y=235/);
+  assert.match(output, /x=260 y=100 width=80 height=30/);
+  assert.match(output, /text#process-label updated: text="处理数据 v2"/);
+  assert.match(output, /error: no such shape: process/);
+  assert.match(output, /error: scale factor must be positive/);
+  assert.match(output, /text#process-label\s+parent=g#node2\n\s+x=272\.5 y=117\.5\n\s+text="处理数据 v2"/);
+  assert.match(output, /g#node2\n\s+├── rect#process.*x=260 y=100 w=80 h=30/);
+  assert.equal(output.split('\n').filter((line) => line.startsWith('error:')).length, 2);
+});

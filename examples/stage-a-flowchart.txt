@@ -1,6 +1,6 @@
 # 作业第 6.1 节版本 A：阶段 A 的创建与检查部分
 # 回放：npm run cli < examples/stage-a-flowchart.txt
-# move/set/save 等将在后续阶段实现，此脚本不调用它们。
+# 本脚本仅展示创建与检查；移动和文字编辑见 stage-b-editing.txt。
 init 800 600
 create g flowchart
 create g node1 in flowchart

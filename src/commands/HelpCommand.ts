@@ -8,7 +8,7 @@ export class HelpCommand implements Command {
   public execute(_session: EditorSession): readonly string[] {
     this.args.expectCount(0, 0, "help");
     return [
-      "阶段 A：基础图形和 CLI；undo/redo 当前支持 create。",
+      "阶段 B：基础图形与编辑；undo/redo 支持 create/move/scale/set/delete。",
       "init [w] [h]",
       "read <file.svg>  （尚未实现，阶段 D）",
       "save [file.svg]  （尚未实现，阶段 D）",
@@ -20,10 +20,10 @@ export class HelpCommand implements Command {
       "  line <id> <x1> <y1> <x2> <y2> [stroke]",
       '  text <id> <x> <y> "content"',
       "  g <id>",
-      "delete <id>  （尚未实现，阶段 B）",
-      "move <id> <dx> <dy>  （尚未实现，阶段 B）",
-      "scale <id> <factor>  （尚未实现，阶段 B）",
-      "set <id> <attr> <value>  （尚未实现，阶段 B）",
+      "delete <id>",
+      "move <id> <dx> <dy>",
+      "scale <id> <factor>",
+      "set <id> <attr> <value>",
       "group <newGid> <id1> <id2>...  （尚未实现，阶段 C）",
       "ungroup <gid>  （尚未实现，阶段 C）",
       "addto <gid> <id>  （尚未实现，阶段 C）",
