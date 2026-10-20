@@ -36,6 +36,28 @@ export class Geometry {
   }
 
   public translate(xs: readonly string[], ys: readonly string[], dx: number, dy: number): void {
+    this.apply(this.translatedValues(xs, ys, dx, dy));
+  }
+
+  public validateTranslation(xs: readonly string[], ys: readonly string[], dx: number, dy: number): void {
+    this.translatedValues(xs, ys, dx, dy);
+  }
+
+  public scale(factor: number): void {
+    this.apply(this.scaledValues(factor));
+  }
+
+  public validateScale(factor: number): void {
+    this.scaledValues(factor);
+  }
+
+  public describe(aliases = false): string {
+    return [...this.#attributes.values()]
+      .map((attribute) => `${aliases ? attribute.label ?? attribute.name : attribute.name}=${attribute.value}`)
+      .join(" ");
+  }
+
+  private translatedValues(xs: readonly string[], ys: readonly string[], dx: number, dy: number): ReadonlyMap<string, number> {
     NumericValue.finite(dx, "dx");
     NumericValue.finite(dy, "dy");
     const values = new Map<string, number>();
@@ -45,22 +67,16 @@ export class Geometry {
     for (const name of ys) {
       values.set(name, NumericValue.finite(this.get(name) + dy, name));
     }
-    this.apply(values);
+    return values;
   }
 
-  public scale(factor: number): void {
+  private scaledValues(factor: number): ReadonlyMap<string, number> {
     NumericValue.positive(factor, "scale factor");
     const values = new Map<string, number>();
     for (const [name, attribute] of this.#attributes) {
       values.set(name, NumericValue.finite(attribute.value * factor, name));
     }
-    this.apply(values);
-  }
-
-  public describe(aliases = false): string {
-    return [...this.#attributes.values()]
-      .map((attribute) => `${aliases ? attribute.label ?? attribute.name : attribute.name}=${attribute.value}`)
-      .join(" ");
+    return values;
   }
 
   private apply(values: ReadonlyMap<string, number>): void {

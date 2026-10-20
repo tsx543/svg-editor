@@ -234,3 +234,148 @@ test("nonpositive scaling and geometry overflow cannot partially mutate leaves o
   assert.throws(() => line.move(1e308, 0), /invalid number/);
   assert.equal(line.describe(), "line#line (1,2) -> (1e+308,4)");
 });
+
+test("position reports polymorphic coordinates without including style or text content", () => {
+  const cases: readonly [string, readonly string[], string | null][] = [
+    ["rect", ["1", "2", "3", "4", "red"], "(1,2)"],
+    ["circle", ["3", "4", "5"], "(3,4)"],
+    ["ellipse", ["5", "6", "7", "8"], "(5,6)"],
+    ["line", ["1", "2", "3", "4"], "(1,2) -> (3,4)"],
+    ["text", ["7", "8", "标题"], "(7,8)"],
+    ["g", [], null],
+  ];
+  for (const [kind, args, expected] of cases) {
+    const node = shape(kind, "node", args);
+    assert.equal(node.position(), expected);
+    node.move(2, -1);
+    if (expected !== null) assert.notEqual(node.position(), expected);
+  }
+});
+
+test("delete removes a nested leaf from both the ordered tree and global index and frees its id", () => {
+  const document = new SvgDocument(400, 300);
+  document.create(shape("g", "scene"));
+  for (const id of ["first", "middle", "last"]) {
+    document.create(shape("rect", id, ["1", "2", "3", "4"]), "scene");
+  }
+  document.find("scene").set("fill", "blue");
+  document.delete("middle");
+  assert.deepEqual(document.find("scene").children.map((child) => child.id), ["first", "last"]);
+  assert.equal(document.find("scene").describe(), "g#scene fill=blue");
+  assert.equal(document.find("first").parentId, "scene");
+  assert.equal(document.find("last").parentId, "scene");
+  assert.throws(() => document.find("middle"), { message: "no such shape: middle" });
+  document.create(shape("text", "middle", ["5", "6", "reused"]), "scene");
+  assert.equal(document.find("middle").describe(), 'text#middle (5,6) "reused"');
+  assert.deepEqual(document.find("scene").children.map((child) => child.id), ["first", "last", "middle"]);
+  assert.equal(document.width, 400);
+  assert.equal(document.height, 300);
+});
+
+test("delete removes an entire nested group while preserving its siblings and root order", () => {
+  const document = new SvgDocument();
+  document.create(shape("g", "before"));
+  document.create(shape("g", "scene"));
+  document.create(shape("g", "after"));
+  document.create(shape("g", "keep-before"), "scene");
+  document.create(shape("g", "removed"), "scene");
+  document.create(shape("g", "keep-after"), "scene");
+  document.create(shape("g", "nested"), "removed");
+  document.create(shape("circle", "descendant", ["1", "2", "3"]), "nested");
+  document.delete("removed");
+  for (const id of ["removed", "nested", "descendant"]) {
+    assert.throws(() => document.find(id), { message: `no such shape: ${id}` });
+  }
+  assert.deepEqual(document.children.map((child) => child.id), ["before", "scene", "after"]);
+  assert.deepEqual(document.find("scene").children.map((child) => child.id), ["keep-before", "keep-after"]);
+  document.create(shape("g", "nested"), "scene");
+  document.create(shape("g", "descendant"), "scene");
+  assert.equal(document.find("nested").parentId, "scene");
+  document.delete("scene");
+  assert.deepEqual(document.children.map((child) => child.id), ["before", "after"]);
+  for (const id of ["scene", "keep-before", "keep-after", "nested", "descendant"]) {
+    assert.throws(() => document.find(id), { message: `no such shape: ${id}` });
+  }
+});
+
+test("failed deletion preserves values, node identities and ordered structure", () => {
+  const document = new SvgDocument();
+  document.create(shape("g", "scene"));
+  document.create(shape("circle", "c", ["1", "2", "3"]), "scene");
+  const before = descriptions(document);
+  const root = document.find("scene");
+  const circle = document.find("c");
+  assert.throws(() => document.delete("missing"), { message: "no such shape: missing" });
+  assert.deepEqual(descriptions(document), before);
+  assert.equal(document.find("scene"), root);
+  assert.equal(document.find("c"), circle);
+  const empty = new SvgDocument();
+  assert.throws(() => empty.delete("missing"), { message: "no such shape: missing" });
+  assert.deepEqual(empty.children, []);
+});
+
+test("clones remain independent snapshots before and after deletion", () => {
+  const document = new SvgDocument();
+  document.create(shape("g", "scene"));
+  document.create(shape("text", "t", ["1", "2", "original"]), "scene");
+  const snapshot = document.clone();
+  document.delete("scene");
+  assert.deepEqual(document.children, []);
+  assert.equal(snapshot.find("t").describe(), 'text#t (1,2) "original"');
+  assert.equal(snapshot.find("t").parentId, "scene");
+  document.create(snapshot.find("scene"));
+  document.find("t").set("text", "restored and edited");
+  assert.equal(snapshot.find("t").describe(), 'text#t (1,2) "original"');
+  snapshot.delete("t");
+  assert.equal(document.find("t").describe(), 'text#t (1,2) "restored and edited"');
+  assert.deepEqual(snapshot.find("scene").children, []);
+});
+
+test("group transformations preserve indexed node identities and reject overflow before any edit", () => {
+  const document = new SvgDocument();
+  document.create(shape("g", "outer"));
+  document.create(shape("g", "inner"), "outer");
+  document.create(shape("circle", "ordinary", ["1", "2", "3"]), "outer");
+  document.create(shape("line", "huge", ["1e308", "2", "1e308", "4"]), "inner");
+  const outer = document.find("outer");
+  const inner = document.find("inner");
+  const ordinary = document.find("ordinary");
+  const huge = document.find("huge");
+  const before = descriptions(document);
+  assert.throws(() => outer.move(1e308, 1), /invalid number/);
+  assert.throws(() => outer.scale(2), /invalid number/);
+  assert.deepEqual(descriptions(document), before);
+  assert.equal(document.find("outer"), outer);
+  assert.equal(document.find("inner"), inner);
+  assert.equal(document.find("ordinary"), ordinary);
+  assert.equal(document.find("huge"), huge);
+  outer.move(0, 1);
+  outer.scale(0.5);
+  assert.equal(document.find("ordinary"), ordinary);
+  assert.equal(document.find("huge"), huge);
+  assert.equal(ordinary.describe(), "circle#ordinary cx=0.5 cy=1.5 r=1.5");
+  assert.equal(huge.position(), "(5e+307,1.5) -> (5e+307,2.5)");
+});
+
+test("moderately deep chains support repeated atomic transforms without rebuilding indexed nodes", { timeout: 5_000 }, () => {
+  let branch = shape("circle", "tip", ["1", "2", "3"]);
+  for (let index = 95; index >= 0; index -= 1) {
+    branch = shape("g", `level-${index}`).withChild(branch);
+  }
+  const document = new SvgDocument();
+  document.create(branch);
+  const root = document.find("level-0");
+  const tip = document.find("tip");
+  for (let count = 0; count < 100; count += 1) {
+    root.move(1, -1);
+    root.scale(2);
+    root.scale(0.5);
+    root.move(-1, 1);
+  }
+  assert.equal(document.find("tip"), tip);
+  assert.equal(tip.describe(), "circle#tip cx=1 cy=2 r=3");
+  assert.equal(tip.parentId, "level-95");
+  const before = tip.describe();
+  assert.throws(() => root.move(Infinity, 0), /invalid number/);
+  assert.equal(tip.describe(), before);
+});

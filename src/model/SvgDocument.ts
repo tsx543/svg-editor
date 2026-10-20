@@ -59,6 +59,18 @@ export class SvgDocument {
     return copy;
   }
 
+  public delete(id: string): void {
+    this.find(id);
+    const nextChildren: Shape[] = [];
+    for (const child of this.#children) {
+      const retained = child.withoutNode(id);
+      if (retained !== null) nextChildren.push(retained);
+    }
+    const nextIndex = this.buildIndex(nextChildren);
+    this.#children = nextChildren;
+    this.#index = nextIndex;
+  }
+
   private buildIndex(roots: readonly Shape[]): Map<string, Shape> {
     const index = new Map<string, Shape>();
     for (const root of roots) this.indexSubtree(root, index);

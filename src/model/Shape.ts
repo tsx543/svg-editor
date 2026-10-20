@@ -30,18 +30,27 @@ export abstract class Shape {
     return [];
   }
 
-  public abstract move(dx: number, dy: number): void;
+  public move(dx: number, dy: number): void {
+    this.validateMove(dx, dy);
+    this.applyMove(dx, dy);
+  }
 
   public validateMove(dx: number, dy: number): void {
-    this.clone().move(dx, dy);
+    const [xs, ys] = this.movementAxes();
+    this.#geometry.validateTranslation(xs, ys, dx, dy);
   }
 
   public scale(factor: number): void {
-    this.#geometry.scale(factor);
+    this.validateScale(factor);
+    this.applyScale(factor);
   }
 
   public validateScale(factor: number): void {
-    this.clone().scale(factor);
+    this.#geometry.validateScale(factor);
+  }
+
+  public position(): string | null {
+    return null;
   }
 
   public set(attribute: string, value: string): void {
@@ -80,6 +89,32 @@ export abstract class Shape {
   /** Rebuilds structure without exposing a mutable child collection. */
   public replaceNode(id: string, replacement: Shape): Shape {
     return this.id === id ? replacement.clone(this.parentId) : this.clone();
+  }
+
+  /** Returns a separate tree, omitting the requested subtree if present. */
+  public withoutNode(id: string): Shape | null {
+    return this.id === id ? null : this.clone();
+  }
+
+  protected static applyMoveTo(shape: Shape, dx: number, dy: number): void {
+    shape.applyMove(dx, dy);
+  }
+
+  protected static applyScaleTo(shape: Shape, factor: number): void {
+    shape.applyScale(factor);
+  }
+
+  protected movementAxes(): readonly [readonly string[], readonly string[]] {
+    return [[], []];
+  }
+
+  protected applyMove(dx: number, dy: number): void {
+    const [xs, ys] = this.movementAxes();
+    this.coordinates(xs, ys, dx, dy);
+  }
+
+  protected applyScale(factor: number): void {
+    this.#geometry.scale(factor);
   }
 
   protected number(name: string): number {

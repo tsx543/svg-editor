@@ -17,25 +17,23 @@ export class Group extends Shape {
     return [...this.#children];
   }
 
-  public override move(dx: number, dy: number): void {
-    this.validateMove(dx, dy);
-    for (const child of this.#children) child.move(dx, dy);
-  }
-
   public override validateMove(dx: number, dy: number): void {
     NumericValue.finite(dx, "dx");
     NumericValue.finite(dy, "dy");
     for (const child of this.#children) child.validateMove(dx, dy);
   }
 
-  public override scale(factor: number): void {
-    this.validateScale(factor);
-    for (const child of this.#children) child.scale(factor);
-  }
-
   public override validateScale(factor: number): void {
     NumericValue.positive(factor, "scale factor");
     for (const child of this.#children) child.validateScale(factor);
+  }
+
+  protected override applyMove(dx: number, dy: number): void {
+    for (const child of this.#children) Group.applyMoveTo(child, dx, dy);
+  }
+
+  protected override applyScale(factor: number): void {
+    for (const child of this.#children) Group.applyScaleTo(child, factor);
   }
 
   public override clone(parentId: string | null = this.parentId): Group {
@@ -55,5 +53,15 @@ export class Group extends Shape {
     const copy = this.clone();
     copy.#children = this.#children.map((child) => child.replaceNode(id, replacement));
     return copy;
+  }
+
+  public override withoutNode(id: string): Shape | null {
+    if (this.id === id) return null;
+    const copy = new Group(this.id, new PositionalShapeInput([]));
+    for (const child of this.#children) {
+      const retained = child.withoutNode(id);
+      if (retained !== null) copy.#children.push(retained);
+    }
+    return this.copyStateTo(copy, this.parentId);
   }
 }

@@ -17,12 +17,16 @@ export class Line extends Shape {
 
   public override get kind(): string { return "line"; }
 
-  public override move(dx: number, dy: number): void {
-    this.coordinates(["x1", "x2"], ["y1", "y2"], dx, dy);
+  public override position(): string {
+    return `(${this.number("x1")},${this.number("y1")}) -> (${this.number("x2")},${this.number("y2")})`;
+  }
+
+  protected override movementAxes(): readonly [readonly string[], readonly string[]] {
+    return [["x1", "x2"], ["y1", "y2"]];
   }
 
   protected override geometryDescription(): string {
-    return `(${this.number("x1")},${this.number("y1")}) -> (${this.number("x2")},${this.number("y2")})`;
+    return this.position();
   }
 
   public override clone(parentId: string | null = this.parentId): Line {

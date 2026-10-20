@@ -17,8 +17,12 @@ export class Rect extends Shape {
 
   public override get kind(): string { return "rect"; }
 
-  public override move(dx: number, dy: number): void {
-    this.coordinates(["x"], ["y"], dx, dy);
+  public override position(): string {
+    return `(${this.number("x")},${this.number("y")})`;
+  }
+
+  protected override movementAxes(): readonly [readonly string[], readonly string[]] {
+    return [["x"], ["y"]];
   }
 
   public override clone(parentId: string | null = this.parentId): Rect {

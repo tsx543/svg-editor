@@ -16,8 +16,12 @@ export class Circle extends Shape {
 
   public override get kind(): string { return "circle"; }
 
-  public override move(dx: number, dy: number): void {
-    this.coordinates(["cx"], ["cy"], dx, dy);
+  public override position(): string {
+    return `(${this.number("cx")},${this.number("cy")})`;
+  }
+
+  protected override movementAxes(): readonly [readonly string[], readonly string[]] {
+    return [["cx"], ["cy"]];
   }
 
   public override clone(parentId: string | null = this.parentId): Circle {

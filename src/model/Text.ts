@@ -16,12 +16,16 @@ export class Text extends Shape {
 
   public override get kind(): string { return "text"; }
 
-  public override move(dx: number, dy: number): void {
-    this.coordinates(["x"], ["y"], dx, dy);
+  public override position(): string {
+    return `(${this.number("x")},${this.number("y")})`;
+  }
+
+  protected override movementAxes(): readonly [readonly string[], readonly string[]] {
+    return [["x"], ["y"]];
   }
 
   protected override geometryDescription(): string {
-    return `(${this.number("x")},${this.number("y")}) ${JSON.stringify(this.#content)}`;
+    return `${this.position()} ${JSON.stringify(this.#content)}`;
   }
 
   protected override setContent(attribute: string, value: string): boolean {
