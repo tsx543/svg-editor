@@ -133,7 +133,11 @@ svg-editor/
 
 其中 `DocumentGateway` 表达“读入或保存一个文档”，`FileStore` 表达“读写一段文本”。`SvgDocumentGateway` 和 `NodeFileStore` 分别实现它们。接口属于应用层，因此应用无需反向导入外部实现。
 
-生产源码的外部依赖按模块检查：`cli/infrastructure` 可使用 Node 内置模块，`svg` 可使用显式选定的 XML 解析包及其包内子路径；其他业务模块不直接使用这些外部能力。XML 包白名单由 `tests/architecture.test.ts` 的 `selectedXmlPackages` 声明，扫描和正反例均复用测试辅助类 `ExternalDependencyPolicy`。**当前尚未选型，因此名单为空，不代表架构永久禁止 XML 库。** 阶段 D 选型时，应在同一提交中更新依赖清单、该白名单和选型记录，不放开 SVG 对任意第三方包的访问。
+生产源码的外部依赖按模块检查：`cli/infrastructure` 可使用 Node 内置模块，`svg` 可使用显式选定的 XML 解析包及其包内子路径；其他业务模块不直接使用这些外部能力。XML 包白名单由 `tests/architecture.test.ts` 的 `selectedXmlPackages` 声明，扫描和正反例均复用测试辅助类 `ExternalDependencyPolicy`。
+
+阶段 D 选定 **`saxes 6.0.0`**，精确记录在生产依赖及锁文件中，白名单同步为 `["saxes"]`。选型依据是它提供事件式 XML 解析、命名空间识别和 TypeScript 类型，可在边界层检查元素与属性，并由模型统一解释图形；不在业务层自行编写 XML 语法解析器。已核对[项目官方说明](https://github.com/lddubeau/saxes)及实际安装包的版本、类型与依赖；其传递依赖 `xmlchars` 由锁文件记录，业务源码不直接导入。XML 包选择、白名单和本记录随编解码能力一同提交，其他模块的外部依赖限制保持原规则。
+
+接入后实际发现 `saxes.d.ts` 四处泛型 O 缺少约束，与当前 TypeScript 7 的声明检查不兼容（TS2344）。工程设置 `skipLibCheck: true`，跳过依赖声明文件内部检查；业务和测试源码仍启用 `strict`、未使用项检查，并检查实际调用的类型。[TypeScript 官方说明](https://www.typescriptlang.org/tsconfig/skipLibCheck.html)也明确这一选项会减少声明内部的类型保证，因此以 XML 行为、往返和错误边界测试补充验证，不把它描述成第三方声明已经修复；安装后不手改 `node_modules`。
 
 测试代码使用的 `@babel/parser` 属于开发依赖，不在 `src/` 生产导入扫描范围；它也不是提前选定的 SVG 解析库。
 

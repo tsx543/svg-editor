@@ -7,9 +7,9 @@ import { parse } from "@babel/parser";
 import { ExternalDependencyPolicy } from "./support/ExternalDependencyPolicy.js";
 
 const sourceRoot = fileURLToPath(new URL("../src", import.meta.url));
-// No XML parser has been selected yet. Stage D must explicitly add the chosen
-// package here together with its package.json dependency and the design record.
-const selectedXmlPackages: readonly string[] = [];
+// Stage D selects saxes for XML parsing; only the SVG boundary may import it.
+// Keep this list aligned with package.json and the design's dependency record.
+const selectedXmlPackages: readonly string[] = ["saxes"];
 const externalPolicy = new ExternalDependencyPolicy(selectedXmlPackages);
 
 function sources(directory: string): string[] {
