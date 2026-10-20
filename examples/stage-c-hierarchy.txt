@@ -1,0 +1,38 @@
+# 阶段 C：从不同父级收编、调整层级与同级顺序，并撤销重做
+# 回放：npm run cli < examples/stage-c-hierarchy.txt
+init 800 600
+create g scene
+create g left in scene
+create rect r1 10 20 30 40 red in left
+create text title 15 35 "原有标题" in left
+create g right in scene
+create circle c1 100 100 20 blue in right
+create ellipse e1 200 100 30 10 in right
+create line link 40 40 100 100 black in scene
+# 参数故意与原文档顺序相反，组内仍保持原文档顺序
+group markers c1 r1
+tree
+show markers
+undo
+tree
+redo
+addto markers title
+tree markers
+undo
+redo
+back title
+tree markers
+front title
+tree markers
+ungroup markers
+tree
+undo
+tree
+redo
+tree
+# 进一步确认结构操作后的普通编辑仍然可用
+move c1 30 0
+undo
+redo
+set title text "层级编辑完成"
+show title

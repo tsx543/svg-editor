@@ -1,9 +1,13 @@
 import type { CommandArguments } from "../application/CommandArguments.js";
 import type { Command } from "../application/contracts/Command.js";
 import type { CommandRequest } from "../application/contracts/CommandRequest.js";
+import { AddToCommand } from "../commands/AddToCommand.js";
+import { BackCommand } from "../commands/BackCommand.js";
 import { CanvasCommand } from "../commands/CanvasCommand.js";
 import { CreateCommand } from "../commands/CreateCommand.js";
 import { DeleteCommand } from "../commands/DeleteCommand.js";
+import { FrontCommand } from "../commands/FrontCommand.js";
+import { GroupCommand } from "../commands/GroupCommand.js";
 import { HelpCommand } from "../commands/HelpCommand.js";
 import { InitCommand } from "../commands/InitCommand.js";
 import { MoveCommand } from "../commands/MoveCommand.js";
@@ -13,6 +17,7 @@ import { SetCommand } from "../commands/SetCommand.js";
 import { ShowCommand } from "../commands/ShowCommand.js";
 import { TreeCommand } from "../commands/TreeCommand.js";
 import { UndoCommand } from "../commands/UndoCommand.js";
+import { UngroupCommand } from "../commands/UngroupCommand.js";
 
 type CommandConstructor = new (args: CommandArguments) => Command;
 
@@ -34,11 +39,11 @@ export class CommandDispatcher {
     ["move", MoveCommand],
     ["scale", ScaleCommand],
     ["set", SetCommand],
-    ["group", null],
-    ["ungroup", null],
-    ["addto", null],
-    ["front", null],
-    ["back", null],
+    ["group", GroupCommand],
+    ["ungroup", UngroupCommand],
+    ["addto", AddToCommand],
+    ["front", FrontCommand],
+    ["back", BackCommand],
   ]);
 
   public dispatch(request: CommandRequest): Command {
@@ -47,7 +52,7 @@ export class CommandDispatcher {
       throw new Error(`unknown command: ${request.name}`);
     }
     if (CommandType === null) {
-      throw new Error(`command 尚未实现（阶段 B）: ${request.name}`);
+      throw new Error(`command 尚未实现（阶段 C）: ${request.name}`);
     }
     return new CommandType(request.arguments);
   }

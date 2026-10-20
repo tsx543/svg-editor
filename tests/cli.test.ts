@@ -104,3 +104,31 @@ test('piped CLI moves, scales, updates, deletes, and restores a complete nested 
   assert.match(output, /g#node2\n\s+├── rect#process.*x=260 y=100 w=80 h=30/);
   assert.equal(output.split('\n').filter((line) => line.startsWith('error:')).length, 2);
 });
+
+test('piped CLI groups, reparents, reorders, ungroups, and restores ordered shapes', () => {
+  const output = runScript([
+    'init 400 200',
+    'create g scene',
+    'create rect a 10 20 30 40 red in scene',
+    'create rect b 50 60 70 80 blue in scene',
+    'group pair b a',
+    'create circle c 90 100 5 green in scene',
+    'addto pair c',
+    'front a',
+    'back a',
+    'ungroup pair',
+    'show c',
+    'undo',
+    'delete pair',
+    'undo',
+    'group invalid scene a',
+    'ungroup scene',
+    'tree',
+  ].join('\n'));
+  assert.match(output, /g#pair created with 2 children/);
+  assert.match(output, /circle#c\s+parent=g#scene\n\s+cx=90 cy=100 r=5/);
+  assert.match(output, /error: cannot group a container into its own descendant: scene/);
+  assert.match(output, /error: cannot ungroup top-level container: scene/);
+  assert.match(output, /svg \(400x200\)\n└── g#scene\n    └── g#pair\n        ├── rect#a x=10 y=20 w=30 h=40 fill=red\n        ├── rect#b x=50 y=60 w=70 h=80 fill=blue\n        └── circle#c cx=90 cy=100 r=5 fill=green/);
+  assert.equal(output.split('\n').filter((line) => line.startsWith('error:')).length, 2);
+});
