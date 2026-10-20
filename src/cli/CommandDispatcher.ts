@@ -11,8 +11,10 @@ import { GroupCommand } from "../commands/GroupCommand.js";
 import { HelpCommand } from "../commands/HelpCommand.js";
 import { InitCommand } from "../commands/InitCommand.js";
 import { MoveCommand } from "../commands/MoveCommand.js";
+import { ReadCommand } from "../commands/ReadCommand.js";
 import { RedoCommand } from "../commands/RedoCommand.js";
 import { ScaleCommand } from "../commands/ScaleCommand.js";
+import { SaveCommand } from "../commands/SaveCommand.js";
 import { SetCommand } from "../commands/SetCommand.js";
 import { ShowCommand } from "../commands/ShowCommand.js";
 import { TreeCommand } from "../commands/TreeCommand.js";
@@ -24,7 +26,7 @@ type CommandConstructor = new (args: CommandArguments) => Command;
 export class CommandDispatcher {
   // The assignment permits command-name dispatch here; future registration is
   // documented as a later refactor rather than duplicated in another module.
-  private readonly commandTypes = new Map<string, CommandConstructor | null>([
+  private readonly commandTypes = new Map<string, CommandConstructor>([
     ["init", InitCommand],
     ["canvas", CanvasCommand],
     ["create", CreateCommand],
@@ -33,8 +35,8 @@ export class CommandDispatcher {
     ["help", HelpCommand],
     ["undo", UndoCommand],
     ["redo", RedoCommand],
-    ["read", null],
-    ["save", null],
+    ["read", ReadCommand],
+    ["save", SaveCommand],
     ["delete", DeleteCommand],
     ["move", MoveCommand],
     ["scale", ScaleCommand],
@@ -50,9 +52,6 @@ export class CommandDispatcher {
     const CommandType = this.commandTypes.get(request.name);
     if (CommandType === undefined) {
       throw new Error(`unknown command: ${request.name}`);
-    }
-    if (CommandType === null) {
-      throw new Error(`command 尚未实现（阶段 C）: ${request.name}`);
     }
     return new CommandType(request.arguments);
   }

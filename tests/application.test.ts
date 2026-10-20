@@ -22,7 +22,7 @@ function failure(cli: Cli, command: string, expected?: string): void {
   if (expected !== undefined) assert.equal(lines[0], expected);
 }
 
-test('help works before init and lists all 19 commands with future work marked honestly', () => {
+test('help works before init and lists all 19 implemented commands', () => {
   const cli = editor();
   const help = success(cli, 'help');
   for (const command of [
@@ -31,7 +31,7 @@ test('help works before init and lists all 19 commands with future work marked h
   ]) {
     assert.match(help, new RegExp(`\\b${command}\\b`));
   }
-  assert.match(help, /尚未实现/);
+  assert.doesNotMatch(help, /尚未实现/);
   for (const command of ['tree', 'canvas', 'show r1', 'create g scene', 'undo', 'redo']) {
     failure(cli, command, "error: no document. use 'init' or 'read' first");
   }
@@ -264,17 +264,4 @@ test('teacher two-node flowchart version A can be built and inspected in stage A
   assert.match(success(cli, 'show process-label'), /处理数据/);
   assert.match(success(cli, 'show arrow1'), /parent=g#flowchart/);
   assert.equal(tree.match(/(?:g|rect|text|line)#[\w-]+/g)?.length, 8);
-});
-
-test('unimplemented phase D commands report failure and preserve the current document', () => {
-  const cli = editor();
-  success(cli, 'init');
-  success(cli, 'create circle c 10 20 3');
-  const before = success(cli, 'tree');
-  for (const command of ['read missing.svg', 'save out.svg']) {
-    const lines = cli.executeLine(command);
-    assert.equal(lines.length, 1);
-    assert.match(lines[0]!, /^error: .*尚未实现/);
-    assert.equal(success(cli, 'tree'), before);
-  }
 });

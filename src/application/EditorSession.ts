@@ -2,17 +2,43 @@ import { SvgDocument } from "../model/SvgDocument.js";
 import type { UndoableCommand } from "./contracts/UndoableCommand.js";
 import { DocumentPresenter } from "./DocumentPresenter.js";
 import { History } from "./History.js";
+import type { DocumentGateway } from "./contracts/DocumentGateway.js";
 
 export class EditorSession {
   #document: SvgDocument | null = null;
   readonly #history = new History();
   readonly #presenter = new DocumentPresenter();
+  #readPath: string | null = null;
+
+  public constructor(private readonly gateway?: DocumentGateway) {}
 
   public init(width: number, height: number): readonly string[] {
     const document = new SvgDocument(width, height);
     this.#history.establishBarrier();
     this.#document = document;
+    this.#readPath = null;
     return [`canvas ${width}x${height} created`];
+  }
+
+  public read(path: string): readonly string[] {
+    const loaded = this.#gateway().read(path);
+    const document = loaded.document.clone();
+    const result = [...loaded.warnings, `read ${path} (${document.elementCount} elements)`];
+    this.#history.establishBarrier();
+    this.#document = document;
+    this.#readPath = path;
+    return result;
+  }
+
+  public save(path?: string): readonly string[] {
+    const document = this.#current();
+    const destination = path ?? this.#readPath;
+    if (destination === null) {
+      throw new Error("no default save path. specify a file or use 'read' first");
+    }
+    this.#gateway().save(destination, document.clone());
+    this.#history.establishBarrier();
+    return [`saved to ${destination} (${document.elementCount} elements)`];
   }
 
   public ensureDocument(): void {
@@ -74,5 +100,10 @@ export class EditorSession {
       throw new Error("no document. use 'init' or 'read' first");
     }
     return this.#document;
+  }
+
+  #gateway(): DocumentGateway {
+    if (this.gateway === undefined) throw new Error("document gateway is not configured");
+    return this.gateway;
   }
 }

@@ -1,0 +1,46 @@
+# 阶段 D：从工程根目录回放。只覆盖本脚本生成的三个 SVG，不改老师原始样例。
+# 回放：npm run cli < examples/stage-d-roundtrip.txt
+init 800 600
+create g flowchart
+create g node1 in flowchart
+create rect start 120 100 160 60 #4a90d9 in node1
+create text start-label 155 135 "开始" in node1
+create g node2 in flowchart
+create rect process 520 100 160 60 #f5a623 in node2
+create text process-label 545 135 "处理数据" in node2
+create line arrow1 280 130 520 130 black in flowchart
+move node2 0 100
+undo
+set process-label text "处理数据 v2"
+save examples/flowchart.svg
+# 预期 error: undo not allowed after io command
+undo
+read examples/flowchart.svg
+tree
+read examples/other.svg
+# 上一步预期先出现 warning: assigned id rect1 to unnamed <rect>
+tree
+save examples/roundtrip.svg
+read examples/roundtrip.svg
+move c1 30 0
+undo
+redo
+# 无参数保存到刚刚成功 read 的路径
+save
+# 预期 error: undo not allowed after io command
+undo
+read examples/roundtrip.svg
+show c1
+# 带变换文档：移动、绕文档原点缩放、换父与解组，再保存读回
+read examples/background-transformed.svg
+move nodeB 40 30
+scale nodeB 0.5
+addto diagram rect1
+ungroup nodeB
+# 换父级会调整绘制顺序，将文字放到同级最上层便于预览
+front text1
+show rect1
+show text1
+save examples/transformed-edited.svg
+read examples/transformed-edited.svg
+tree

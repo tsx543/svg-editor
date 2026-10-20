@@ -8,10 +8,10 @@ export class HelpCommand implements Command {
   public execute(_session: EditorSession): readonly string[] {
     this.args.expectCount(0, 0, "help");
     return [
-      "阶段 C：基础图形、编辑与层级顺序；全部十种编辑命令支持 undo/redo。",
+      "阶段 D：全部 19 条命令已实现；十种编辑支持 undo/redo，成功 read/save 后建立历史屏障。",
       "init [w] [h]",
-      "read <file.svg>  （尚未实现，阶段 D）",
-      "save [file.svg]  （尚未实现，阶段 D）",
+      "read <file.svg>",
+      "save [file.svg]",
       "canvas [w] [h]",
       "create <type> <id> [params...] [in <containerId>]",
       "  rect <id> <x> <y> <w> <h> [fill]",

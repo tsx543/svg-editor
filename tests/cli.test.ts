@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 
@@ -17,7 +20,7 @@ function runScript(script: string): string {
   assert.equal(result.signal, null, 'CLI must finish naturally on EOF');
   assert.equal(result.status, 0, result.stderr);
   assert.equal(result.stderr, '', 'ordinary command errors should be formatted by the CLI');
-  assert.doesNotMatch(result.stdout, /svg>/, 'piped input must not contain interactive prompts');
+  assert.doesNotMatch(result.stdout, /^svg>/m, 'piped input must not contain interactive prompts');
   return result.stdout;
 }
 
@@ -58,7 +61,7 @@ test('piped CLI processes a final line without a trailing newline', () => {
   assert.match(output, /fill=red/);
 });
 
-test('piped CLI supports create undo/redo and rejects unpublished future commands', () => {
+test('piped CLI supports create undo/redo and reports a missing default save path', () => {
   const output = runScript([
     'init',
     'create g scene',
@@ -66,12 +69,12 @@ test('piped CLI supports create undo/redo and rejects unpublished future command
     'show scene',
     'redo',
     'show scene',
-    'save premature.svg',
+    'save',
     'tree',
   ].join('\n'));
   assert.match(output, /error: no such shape: scene/);
   assert.match(output, /g#scene\s+parent=svg/);
-  assert.match(output, /error: .*尚未实现/);
+  assert.match(output, /error: no default save path\. specify a file or use 'read' first/);
   assert.match(output, /svg \(800x600\)\n└── g#scene/);
 });
 
@@ -131,4 +134,32 @@ test('piped CLI groups, reparents, reorders, ungroups, and restores ordered shap
   assert.match(output, /error: cannot ungroup top-level container: scene/);
   assert.match(output, /svg \(400x200\)\n└── g#scene\n    └── g#pair\n        ├── rect#a x=10 y=20 w=30 h=40 fill=red\n        ├── rect#b x=50 y=60 w=70 h=80 fill=blue\n        └── circle#c cx=90 cy=100 r=5 fill=green/);
   assert.equal(output.split('\n').filter((line) => line.startsWith('error:')).length, 2);
+});
+
+test('piped CLI reads the teacher fixture, saves a Chinese space path, and continues after file errors', (context) => {
+  const directory = mkdtempSync(join(tmpdir(), 'svg-editor-cli-'));
+  context.after(() => rmSync(directory, { recursive: true, force: true }));
+  const outputPath = join(directory, '中文 diagram.svg');
+  const missingPath = join(directory, 'missing.svg');
+  const output = runScript([
+    'read examples/other.svg',
+    'move c1 5 10',
+    `save ${JSON.stringify(outputPath)}`,
+    'undo',
+    `read ${JSON.stringify(missingPath)}`,
+    'show c1',
+    'help',
+  ].join('\n'));
+  assert.match(output, /warning: assigned id rect1 to unnamed <rect>/);
+  assert.match(output, /read examples\/other\.svg \(7 elements\)/);
+  assert.ok(output.includes(`saved to ${outputPath} (7 elements)`));
+  assert.ok(output.includes(`error: cannot read file: ${missingPath}`));
+  assert.match(output, /error: undo not allowed after io command/);
+  assert.match(output, /cx=55 cy=60 r=10/);
+  assert.doesNotMatch(output, /尚未实现/);
+  assert.match(readFileSync(outputPath, 'utf8'), /<svg\b/);
+  const reopened = runScript(`read ${JSON.stringify(outputPath)}\nshow c1\ntree`);
+  assert.match(reopened, /cx=55 cy=60 r=10/);
+  assert.match(reopened, /parent=svg/);
+  assert.doesNotMatch(reopened, /warning:|error:/);
 });
