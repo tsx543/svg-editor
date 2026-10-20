@@ -1,0 +1,43 @@
+@startuml
+title SVG CLI - Planned module dependencies
+top to bottom direction
+skinparam componentStyle rectangle
+skinparam shadowing false
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName SansSerif
+skinparam defaultFontSize 14
+skinparam ArrowColor #526579
+skinparam component {
+  BackgroundColor #F0F6FC
+  BorderColor #526579
+  FontColor #17324D
+}
+
+component "main.ts\nComposition root" as Main #E9F4EA
+component "cli/\nREPL, parser, dispatcher" as Cli
+component "commands/\nConcrete command objects" as Commands
+component "application/\nSession, history, presenter, ports" as Application
+component "model/\nShape tree, rules, factory" as Model #FFF4DF
+component "svg/\nXML codec and document gateway" as Svg
+component "infrastructure/\nLocal text file adapter" as Infrastructure
+
+Main --> Cli
+Main --> Application
+Main --> Model
+Main --> Svg
+Main --> Infrastructure
+Cli --> Commands
+Cli --> Application
+Commands --> Application
+Commands --> Model
+Application --> Model
+Svg --> Model
+Svg --> Application : contracts only
+Infrastructure --> Application : contracts only
+
+legend bottom
+  Arrows = source dependencies, not runtime call order.
+  Only CommandDispatcher and ShapeFactory dispatch by name.
+  Planned architecture; feature modules are not implemented yet.
+endlegend
+@enduml
