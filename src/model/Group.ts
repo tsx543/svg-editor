@@ -50,9 +50,9 @@ export class Group extends Shape {
 
   public override replaceNode(id: string, replacement: Shape): Shape {
     if (this.id === id) return replacement.clone(this.parentId);
-    const copy = this.clone();
+    const copy = new Group(this.id, new PositionalShapeInput([]));
     copy.#children = this.#children.map((child) => child.replaceNode(id, replacement));
-    return copy;
+    return this.copyStateTo(copy, this.parentId);
   }
 
   public override withoutNode(id: string): Shape | null {

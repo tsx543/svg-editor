@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { Circle } from "../src/model/Circle.js";
 import { PositionalShapeInput } from "../src/model/PositionalShapeInput.js";
 import type { Shape } from "../src/model/Shape.js";
 import { ShapeFactory } from "../src/model/ShapeFactory.js";
@@ -378,4 +379,100 @@ test("moderately deep chains support repeated atomic transforms without rebuildi
   const before = tip.describe();
   assert.throws(() => root.move(Infinity, 0), /invalid number/);
   assert.equal(tip.describe(), before);
+});
+
+test("replacing a nested group preserves hierarchy, order, styles and independent tree ownership", () => {
+  const target = shape("g", "target").withChild(shape("circle", "old", ["1", "2", "3"]));
+  target.set("fill", "orange");
+  const inner = shape("g", "inner")
+    .withChild(shape("circle", "before", ["4", "5", "6"]))
+    .withChild(target)
+    .withChild(shape("circle", "after", ["7", "8", "9"]));
+  inner.set("stroke", "gray");
+  const outer = shape("g", "outer")
+    .withChild(shape("circle", "head", ["10", "20", "30"]))
+    .withChild(inner)
+    .withChild(shape("circle", "tail", ["40", "50", "60"]));
+  outer.set("fill", "blue");
+  outer.set("stroke-width", "2");
+  const original = new SvgDocument();
+  original.create(shape("g", "scene"));
+  original.create(outer, "scene");
+  const before = descriptions(original);
+
+  const donor = new SvgDocument();
+  donor.create(shape("g", "donor"));
+  donor.create(shape("g", "target"), "donor");
+  donor.create(shape("text", "new-label", ["15", "25", "replacement"]), "target");
+  donor.create(shape("g", "new-nested"), "target");
+  donor.create(shape("circle", "new-circle", ["35", "45", "5"]), "new-nested");
+  donor.find("target").set("fill", "purple");
+  donor.find("target").set("stroke-width", "3");
+  const incoming = descriptions(donor);
+  const replacement = donor.find("target");
+  const result = original.find("outer").replaceNode("target", replacement);
+  const flatten = (node: Shape): readonly Shape[] => [node, ...node.children.flatMap(flatten)];
+  const resultNodes = new Map(flatten(result).map((node) => [node.id, node]));
+  const expectedParents: Readonly<Record<string, string>> = {
+    outer: "scene", head: "outer", inner: "outer", before: "inner", target: "inner",
+    "new-label": "target", "new-nested": "target", "new-circle": "new-nested",
+    after: "inner", tail: "outer",
+  };
+  assert.deepEqual([...resultNodes.keys()], Object.keys(expectedParents));
+  for (const [id, parent] of Object.entries(expectedParents)) {
+    assert.equal(resultNodes.get(id)?.parentId, parent, id);
+  }
+  assert.deepEqual(result.children.map((node) => node.id), ["head", "inner", "tail"]);
+  assert.deepEqual(resultNodes.get("inner")?.children.map((node) => node.id), ["before", "target", "after"]);
+  assert.equal(result.describe(), "g#outer fill=blue stroke-width=2");
+  assert.equal(resultNodes.get("inner")?.describe(), "g#inner stroke=gray");
+  assert.equal(resultNodes.get("target")?.describe(), "g#target fill=purple stroke-width=3");
+  assert.equal(resultNodes.get("new-label")?.describe(), 'text#new-label (15,25) "replacement"');
+  assert.deepEqual(descriptions(original), before);
+  assert.deepEqual(descriptions(donor), incoming);
+  assert.notEqual(resultNodes.get("target"), replacement);
+  assert.notEqual(resultNodes.get("head"), original.find("head"));
+
+  result.set("fill", "green");
+  resultNodes.get("inner")!.set("stroke", "black");
+  resultNodes.get("head")!.move(1, 2);
+  resultNodes.get("new-label")!.set("text", "result only");
+  resultNodes.get("new-circle")!.scale(2);
+  assert.deepEqual(descriptions(original), before);
+  assert.deepEqual(descriptions(donor), incoming);
+
+  original.find("tail").move(100, 200);
+  original.find("inner").set("stroke", "red");
+  donor.find("new-label").set("text", "donor only");
+  donor.find("new-circle").move(10, 20);
+  replacement.set("fill", "yellow");
+  assert.equal(resultNodes.get("tail")?.describe(), "circle#tail cx=40 cy=50 r=60");
+  assert.equal(resultNodes.get("inner")?.describe(), "g#inner stroke=black");
+  assert.equal(resultNodes.get("new-label")?.describe(), 'text#new-label (15,25) "result only"');
+  assert.equal(resultNodes.get("new-circle")?.describe(), "circle#new-circle cx=70 cy=90 r=10");
+  assert.equal(resultNodes.get("target")?.describe(), "g#target fill=purple stroke-width=3");
+});
+
+test("deep replacement keeps leaf-copy work proportional to the resulting tree", (context) => {
+  const clone = context.mock.method(Circle.prototype, "clone");
+  const measurements: { depth: number; leaves: number; copies: number }[] = [];
+  for (const depth of [4, 16, 48]) {
+    let branch = shape("circle", "target", ["1", "2", "3"]);
+    for (let index = depth - 1; index >= 0; index -= 1) {
+      branch = shape("g", `level-${index}`)
+        .withChild(shape("circle", `side-${index}`, ["4", "5", "6"]))
+        .withChild(branch);
+    }
+    const replacement = shape("circle", "target", ["7", "8", "9"]);
+    clone.mock.resetCalls();
+    const result = branch.replaceNode("target", replacement);
+    measurements.push({ depth, leaves: depth + 1, copies: clone.mock.callCount() });
+    assert.equal(result.children[0]?.parentId, "level-0");
+    assert.equal(branch.children[0]?.parentId, "level-0");
+  }
+  context.diagnostic(`leaf-copy counts: ${measurements.map(({ depth, leaves, copies }) => `depth ${depth}: ${copies} copies / ${leaves} leaves`).join("; ")}`);
+  for (const { depth, leaves, copies } of measurements) {
+    assert.ok(copies <= leaves * 2,
+      `depth ${depth}: ${copies} leaf copies for ${leaves} output leaves exceeds the linear copy budget`);
+  }
 });
