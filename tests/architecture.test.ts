@@ -4,8 +4,13 @@ import { basename, dirname, join, relative, resolve, sep } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { parse } from "@babel/parser";
+import { ExternalDependencyPolicy } from "./support/ExternalDependencyPolicy.js";
 
 const sourceRoot = fileURLToPath(new URL("../src", import.meta.url));
+// No XML parser has been selected yet. Stage D must explicitly add the chosen
+// package here together with its package.json dependency and the design record.
+const selectedXmlPackages: readonly string[] = [];
+const externalPolicy = new ExternalDependencyPolicy(selectedXmlPackages);
 
 function sources(directory: string): string[] {
   return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
@@ -58,7 +63,7 @@ test("production imports obey the documented module directions", () => {
       const dependency = declaration.source.value;
       if (!dependency.startsWith(".")) {
         assert.ok(
-          dependency.startsWith("node:") && (layer === "cli" || layer === "infrastructure"),
+          externalPolicy.allows(layer, dependency),
           `${location}: unexpected external dependency ${dependency}`,
         );
         continue;
@@ -70,5 +75,34 @@ test("production imports obey the documented module directions", () => {
         assert.ok(target.startsWith(join("application", "contracts") + sep), `${location} -> ${target}`);
       }
     }
+  }
+});
+
+test("without an XML selection the external policy remains closed for SVG", () => {
+  const policy = new ExternalDependencyPolicy();
+  assert.equal(policy.allows("svg", "example-xml"), false);
+  assert.equal(policy.allows("svg", "node:fs"), false);
+  assert.equal(policy.allows("cli", "node:readline"), true);
+  assert.equal(policy.allows("infrastructure", "node:fs"), true);
+  assert.equal(policy.allows("model", "node:fs"), false);
+});
+
+test("SVG may import the selected XML packages and their subpaths", () => {
+  const policy = new ExternalDependencyPolicy(["example-xml", "@example/xml"]);
+  for (const dependency of [
+    "example-xml", "example-xml/parser", "@example/xml", "@example/xml/parser",
+  ]) {
+    assert.equal(policy.allows("svg", dependency), true, dependency);
+  }
+});
+
+test("XML permission does not extend to other layers or similarly named packages", () => {
+  const policy = new ExternalDependencyPolicy(["example-xml", "@example/xml"]);
+  for (const layer of ["model", "application", "commands", "cli", "infrastructure"]) {
+    assert.equal(policy.allows(layer, "example-xml"), false, layer);
+    assert.equal(policy.allows(layer, "@example/xml/parser"), false, layer);
+  }
+  for (const dependency of ["unrelated", "example-xml-extra", "@example/xml-extra", "@example/other"]) {
+    assert.equal(policy.allows("svg", dependency), false, dependency);
   }
 });

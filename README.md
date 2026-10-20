@@ -47,7 +47,7 @@ npm run build
 npm start
 ```
 
-`typecheck` 检查业务与测试源码，`test` 运行模型、应用、解析器、真实 CLI 进程和架构检查，`build` 生成 `dist/`，`start` 运行构建产物。阶段 A 的 **42 项测试全部通过**；开发与构建入口均已回放流程图，交互终端也已检查提示符、错误后继续和 EOF 退出。
+`typecheck` 检查业务与测试源码，`test` 运行模型、应用、解析器、真实 CLI 进程和架构检查，`build` 生成 `dist/`，`start` 运行构建产物。阶段 A 及架构规则修正后的 **45 项测试全部通过**；开发与构建入口均已回放流程图，交互终端也已检查提示符、错误后继续和 EOF 退出。
 
 依赖记录在 `package.json` 和 `package-lock.json` 中。npm 缓存放在本项目的 `.npm-cache/`，不提交到 Git。
 
