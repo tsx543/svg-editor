@@ -1,5 +1,5 @@
 @startuml
-title SVG CLI - Planned module dependencies
+title SVG CLI - Architecture and stage A status
 top to bottom direction
 skinparam componentStyle rectangle
 skinparam shadowing false
@@ -18,26 +18,25 @@ component "cli/\nREPL, parser, dispatcher" as Cli
 component "commands/\nConcrete command objects" as Commands
 component "application/\nSession, history, presenter, ports" as Application
 component "model/\nShape tree, rules, factory" as Model #FFF4DF
-component "svg/\nXML codec and document gateway" as Svg
-component "infrastructure/\nLocal text file adapter" as Infrastructure
+component "svg/\nXML codec and document gateway\n(planned for stage D)" as Svg #F3F4F6
+component "infrastructure/\nLocal text file adapter\n(planned for stage D)" as Infrastructure #F3F4F6
 
 Main --> Cli
 Main --> Application
-Main --> Model
-Main --> Svg
-Main --> Infrastructure
+Main ..> Svg
+Main ..> Infrastructure
 Cli --> Commands
 Cli --> Application
 Commands --> Application
 Commands --> Model
 Application --> Model
-Svg --> Model
-Svg --> Application : contracts only
-Infrastructure --> Application : contracts only
+Svg ..> Model
+Svg ..> Application : contracts only
+Infrastructure ..> Application : contracts only
 
 legend bottom
-  Arrows = source dependencies, not runtime call order.
+  Solid arrows = stage A source dependencies.
+  Dashed arrows = dependencies planned for stage D.
   Only CommandDispatcher and ShapeFactory dispatch by name.
-  Planned architecture; feature modules are not implemented yet.
 endlegend
 @enduml

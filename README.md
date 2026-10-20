@@ -8,7 +8,16 @@
 
 ## 当前进度
 
-工程初始化已完成并推送至上方公开仓库：配置了 TypeScript、启动入口、类型检查和构建方式，并已建立 Git 仓库。第三步架构方案已编写，下一步按阶段实现基础编辑器；SVG 编辑命令尚未实现。
+**阶段 A 已完成：基础图形与 CLI。** 支持六种图形、嵌套创建、结构显示和创建的撤销重做；下一步是阶段 B 的其他编辑命令。
+
+| 已实现命令 | 功能 |
+| --- | --- |
+| `init/canvas` | 新建、查询及修改画布尺寸 |
+| `create` | 创建 `rect/circle/ellipse/line/text/g`，全部支持 `in <containerId>` |
+| `tree/show/help` | 显示几何属性与层级、查询父级与明细、查看全部命令语法 |
+| `undo/redo` | 当前支持创建操作；遵守新编辑清 redo、文档操作后禁止撤销重做的规则 |
+
+`move/scale/set/delete`、分组与层级调整、`read/save` 尚未开放，CLI 和 help 会明确提示尚未实现。当前图形只保存在内存中，退出后不保留；SVG 文件读写将在阶段 D 完成。
 
 正式的[架构方案、过程记录、一致性自查和质量保证说明](https://github.com/tsx543/svg-editor/blob/main/doc/README.md)保存在 `doc/README.md`，其中明确区分计划、已完成内容和待验证事项。这里使用完整链接，上传本 README 后也能访问正式文档。本地操作路线见[作业完成指南](作业完成指南.md)。
 
@@ -21,17 +30,24 @@ npm ci
 npm run cli
 ```
 
-当前启动入口只显示初始化提示。后续阶段将在同一入口实现作业规定的 `svg>` 交互界面。
+交互终端显示 `svg>`，逐行输入命令；macOS 下按 Ctrl+D 退出。支持双引号文字、整行 `#` 注释，颜色中的 `#` 保留。
+
+也可以直接回放老师的流程图创建示例：
+
+```bash
+npm run cli < examples/stage-a-flowchart.txt
+```
 
 ## 检查与构建
 
 ```bash
 npm run typecheck
+npm test
 npm run build
 npm start
 ```
 
-`typecheck` 检查 TypeScript 类型，`build` 生成 `dist/`，`start` 运行构建产物。目前尚无编辑器功能测试，测试会随功能实现一起加入。
+`typecheck` 检查业务与测试源码，`test` 运行模型、应用、解析器、真实 CLI 进程和架构检查，`build` 生成 `dist/`，`start` 运行构建产物。阶段 A 的 **42 项测试全部通过**；开发与构建入口均已回放流程图，交互终端也已检查提示符、错误后继续和 EOF 退出。
 
 依赖记录在 `package.json` 和 `package-lock.json` 中。npm 缓存放在本项目的 `.npm-cache/`，不提交到 Git。
 
