@@ -24,6 +24,13 @@ export class Transform {
     return new Transform(1 / this.factor, -this.tx / this.factor, -this.ty / this.factor);
   }
 
+  public relativeTo(parent: Transform): Transform {
+    // Solve parent.compose(local) = this directly: a standalone inverse may overflow
+    // even when the required local transform is finite (for example equal parents).
+    return new Transform(this.factor / parent.factor,
+      (this.tx - parent.tx) / parent.factor, (this.ty - parent.ty) / parent.factor);
+  }
+
   public point(x: number, y: number): readonly [number, number] {
     return [NumericValue.finite(this.factor * x + this.tx, "world x"), NumericValue.finite(this.factor * y + this.ty, "world y")];
   }

@@ -26,6 +26,6 @@ export class TreeTopology implements ShapeTopology {
   public transformFor(shape: Shape, parentId: string | null, parentWorld: Transform): Transform {
     if (!this.#analysis.has(shape.id)) return shape.transform;
     const original = this.#analysis.node(shape.id);
-    return original.parentId === parentId ? shape.transform : parentWorld.inverse().compose(original.world);
+    return original.parentId === parentId ? shape.transform : original.world.relativeTo(parentWorld);
   }
 }

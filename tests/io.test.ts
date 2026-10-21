@@ -356,6 +356,28 @@ test('an empty SVG document keeps its floating-point canvas size through save/re
   assert.equal(success(loaded, 'tree'), 'svg (123.5x456.25)');
 });
 
+test('extreme finite parent transforms can reparent, undo, redo and round trip through a saved file', (context) => {
+  const directory = temporary(context);
+  const input = write(directory, 'extreme.svg', svg(
+    '<g id="left" transform="translate(1e308,0) scale(1e-10)"><rect id="r" x="1" y="1" width="1" height="1"/></g>' +
+    '<g id="right" transform="translate(1e308,0) scale(1e-10)"/>',
+  ));
+  const output = join(directory, 'reparented.svg');
+  const cli = editor();
+  success(cli, `read ${JSON.stringify(input)}`);
+  const before = success(cli, 'tree');
+  success(cli, 'addto right r');
+  assert.match(success(cli, 'show r'), /parent=g#right/);
+  success(cli, 'undo');
+  assert.equal(success(cli, 'tree'), before);
+  success(cli, 'redo');
+  const after = success(cli, 'tree');
+  success(cli, `save ${JSON.stringify(output)}`);
+  success(cli, `read ${JSON.stringify(output)}`);
+  assert.equal(success(cli, 'tree'), after);
+  assert.match(success(cli, 'show r'), /parent=g#right/);
+});
+
 test('the full teacher session in section 6 saves and reopens the edited document before reading other.svg', (context) => {
   const directory = temporary(context);
   const demo = join(directory, 'demo.svg');

@@ -135,6 +135,28 @@ test("overflow world edits and impossible reparenting fail atomically", () => {
   assert.equal(old.parentId, "g");
 });
 
+test("reparenting under identical extreme transforms avoids an unnecessary overflowing inverse", () => {
+  for (const transform of ["translate(1e308,0) scale(1e-10)", "scale(1e-320)"]) {
+    const document = new SvgDocument();
+    document.create(node("g", "left", [], transform));
+    document.create(node("g", "right", [], transform));
+    document.create(node("rect", "r", ["1", "1", "1", "1"]), "left");
+    document.create(node("text", "t", ["2", "2", "label"]), "left");
+    const before = document.position("r");
+    const factor = document.worldTransform("r").factor;
+    document.addTo("right", "r");
+    assert.equal(document.find("r").parentId, "right");
+    assert.equal(document.position("r"), before);
+    assert.equal(document.worldTransform("r").factor, factor);
+    document.addTo("left", "r");
+    document.group("bundle", ["r", "t"]);
+    document.ungroup("bundle");
+    assert.equal(document.position("r"), before);
+    assert.equal(document.worldTransform("r").factor, factor);
+    assert.equal(document.find("r").parentId, "left");
+  }
+});
+
 test("world edits traverse a deep wide subtree a constant number of times", (t) => {
   const depth = 64;
   const width = 64;
