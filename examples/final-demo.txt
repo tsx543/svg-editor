@@ -1,0 +1,35 @@
+# 最终演示：在项目根目录运行 npm run cli < examples/final-demo.txt
+# 输出写入 /tmp/svg-editor-demo.svg，不覆盖仓库中的老师样例。
+init 800 600
+create g flowchart
+create g node1 in flowchart
+create rect start 120 100 160 60 #4a90d9 in node1
+create text start-label 155 135 "开始" in node1
+create g node2 in flowchart
+create rect process 520 100 160 60 #f5a623 in node2
+create text process-label 545 135 "处理数据" in node2
+create line arrow1 280 130 520 130 black in flowchart
+tree
+move node2 0 100
+show process
+show process-label
+undo
+redo
+undo
+set process-label text "处理数据 v2"
+# 预期 error: nothing to redo，新编辑已清空 redo。
+redo
+save /tmp/svg-editor-demo.svg
+# 预期 error: undo not allowed after io command。
+undo
+read /tmp/svg-editor-demo.svg
+show process-label
+move node2 0 100
+undo
+# 无参数 save 仍保存到刚刚 read 的路径。
+save
+read examples/other.svg
+# 预期 warning: assigned id rect1 to unnamed <rect>，读入 7 个元素。
+show rect1
+# 预期 error: undo not allowed after io command。
+undo
